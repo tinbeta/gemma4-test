@@ -22,8 +22,8 @@ def request_entity_too_large(error):
 
 client = genai.Client(api_key=api_key)
 
-conversation_history = []
-
+# Lịch sử hội thoại sẽ được truyền từ frontend lên,
+# không lưu bằng global state nữa để hỗ trợ Serverless (Vercel)
 SAMPLE_FUNCTIONS = [
     {
         "name": "get_weather",
@@ -118,8 +118,6 @@ def index():
 
 @app.route("/send", methods=["POST"])
 def send_message():
-    global conversation_history
-
     message = request.form.get("message", "")
     model_name = request.form.get("model", "gemma-4-26b-a4b-it")
     system_instruction = request.form.get("system_instruction", "")
@@ -133,6 +131,21 @@ def send_message():
     if custom_api_key:
         active_client = genai.Client(api_key=custom_api_key)
 
+    # --- ĐỌC LỊCH SỬ TỪ FRONTEND ---
+    history_str = request.form.get("history", "[]")
+    conversation_history = []
+    try:
+        history_data = json.loads(history_str)
+        for item in history_data:
+            role = item.get("role")
+            # Chỉ nạp lại các tin nhắn chữ để tiết kiệm Payload (bỏ qua ảnh cũ)
+            parts = [types.Part.from_text(text=p.get("text", "")) for p in item.get("parts", []) if "text" in p]
+            if parts:
+                conversation_history.append(types.Content(role=role, parts=parts))
+    except Exception as e:
+        print(f"Error parsing history: {e}")
+
+    # Xử lý tin nhắn và ảnh hiện tại
     try:
         user_parts = []
         if image_file:
@@ -234,8 +247,7 @@ def send_message():
 
 @app.route("/clear", methods=["POST"])
 def clear():
-    global conversation_history
-    conversation_history = []
+    # Stateless backend không cần quản lý lịch sử
     return jsonify({"status": "cleared"})
 
 

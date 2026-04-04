@@ -386,9 +386,12 @@ function previewImage(e){
 
 function clearImage(){selectedFile=null;$('image-upload').value='';previewBar.style.display='none'}
 
+let chatHistory = [];
+
 async function clearChat(){
     try{await fetch('/clear',{method:'POST'})}catch(e){}
     msgs.innerHTML='';
+    chatHistory = [];
     appendMsg('ai','Lịch sử đã được xóa. Bạn muốn bắt đầu lại từ đâu?');
 }
 
@@ -458,6 +461,7 @@ async function sendMessage(){
 
     const fd=new FormData();
     fd.append('message',text);
+    fd.append('history', JSON.stringify(chatHistory));
     fd.append('model',$('model-select').value);
     fd.append('system_instruction',sys);
     fd.append('google_search',$('toggle-search').checked);
@@ -485,6 +489,9 @@ async function sendMessage(){
         if(data.error){
             appendMsg('ai', data.error);
         }else{
+            // Cập nhật lịch sử phía client
+            chatHistory.push({ role: 'user', parts: [{ text: text }] });
+            chatHistory.push({ role: 'model', parts: [{ text: data.response }] });
             appendMsg('ai',data.response,null,data.function_calls,data.search_sources);
         }
     }catch(err){
