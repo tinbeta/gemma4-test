@@ -130,9 +130,27 @@ class handler(BaseHTTPRequestHandler):
             # Xây dựng lịch sử từ frontend
             contents = build_contents(history)
 
-            # Thêm tin nhắn mới
+            # Thêm tin nhắn mới + Ảnh (nếu có)
+            user_parts = []
+            image_data = data.get("image")
+            image_mime = data.get("image_mime")
+            
+            if image_data and image_mime:
+                import base64
+                try:
+                    # Remove header if present (e.g., "data:image/jpeg;base64,")
+                    if "," in image_data:
+                        image_data = image_data.split(",")[1]
+                    img_bytes = base64.b64decode(image_data)
+                    user_parts.append(types.Part.from_bytes(data=img_bytes, mime_type=image_mime))
+                except Exception as e:
+                    print(f"Error decoding image: {e}")
+
             if message:
-                contents.append(types.Content(role="user", parts=[types.Part.from_text(text=message)]))
+                user_parts.append(types.Part.from_text(text=message))
+
+            if user_parts:
+                contents.append(types.Content(role="user", parts=user_parts))
 
             # Config
             tools_list = []

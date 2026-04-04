@@ -370,7 +370,7 @@ function appendMsg(role,content,imgSrc=null,fnCalls=null,sources=null){
 
 async function sendMessage(){
     const text=userInput.value.trim();
-    if(!text)return;
+    if(!text && !selectedFile)return;
 
     const apiKey=$('api-key-input').value.trim();
     if(!apiKey){
@@ -383,34 +383,52 @@ async function sendMessage(){
         sys=(sys?sys+'\n\n':'')+'Hãy suy nghĩ từng bước chi tiết trước khi đưa ra câu trả lời cuối cùng. Trình bày phần suy luận trong khối "### 🧠 Suy nghĩ" và câu trả lời trong "### ✅ Kết luận".';
     }
 
-    appendMsg('user',text);
+    appendMsg('user',text,selectedFile?previewImg.src:null);
+    const fileToUpload=selectedFile;
     userInput.value='';userInput.style.height='auto';
+    const currentImgSrc=previewImg.src;
+    clearImage();
     typing.style.display='block';
 
-    // Thêm tin nhắn user vào lịch sử
-    chatHistory.push({role:'user',parts:[{text:text}]});
+    // Thêm tin nhắn user vào lịch sử (chỉ text để tránh tốn token/băng thông lịch sử)
+    chatHistory.push({role:'user',parts:[{text:text || "[Ảnh]"}]});
 
-    // Quyết định endpoint (local Flask hoặc Vercel serverless)
     const isVercel = !window.location.hostname.includes('127.0.0.1') && !window.location.hostname.includes('localhost');
     const endpoint = isVercel ? '/api/send' : '/send';
-
-    const payload = {
-        api_key: apiKey,
-        message: text,
-        model: $('model-select').value,
-        system_instruction: sys,
-        history: chatHistory.slice(0,-1), // Gửi lịch sử (trừ tin nhắn vừa thêm, vì message đã gửi riêng)
-        google_search: $('toggle-search').checked,
-        function_calling: $('toggle-fn').checked,
-    };
 
     try{
         let res, data;
         if(isVercel){
             // Vercel: gửi JSON
-            res = await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+            const payload = {
+                api_key: apiKey,
+                message: text,
+                model: $('model-select').value,
+                system_instruction: sys,
+                history: chatHistory.slice(0,-1),
+                google_search: $('toggle-search').checked,
+                function_calling: $('toggle-fn').checked,
+            };
+
+            if(fileToUpload){
+                // Kiểm tra kích thước file (Vercel giới hạn ~4.5MB)
+                if(fileToUpload.size > 3 * 1024 * 1024) {
+                    typing.style.display='none';
+                    appendMsg('ai','⚠️ Lỗi: Ảnh quá lớn (>3MB). Vercel dán giới hạn kích thước request. Vui lòng chọn ảnh nhỏ hơn.');
+                    chatHistory.pop();
+                    return;
+                }
+                payload.image = currentImgSrc.split(',')[1]; // Lấy phần base64
+                payload.image_mime = fileToUpload.type;
+            }
+
+            res = await fetch(endpoint,{
+                method:'POST',
+                headers:{'Content-Type':'application/json'},
+                body:JSON.stringify(payload)
+            });
         } else {
-            // Local Flask: gửi FormData (vẫn hoạt động với app.py cũ)
+            // Local Flask: gửi FormData
             const fd=new FormData();
             fd.append('message',text);
             fd.append('model',$('model-select').value);
@@ -418,21 +436,29 @@ async function sendMessage(){
             fd.append('google_search',$('toggle-search').checked);
             fd.append('function_calling',$('toggle-fn').checked);
             fd.append('api_key',apiKey);
+            if(fileToUpload)fd.append('image',fileToUpload);
             res = await fetch(endpoint,{method:'POST',body:fd});
         }
+        
+        // Kiểm tra lỗi trước khi .json() để tránh "Unexpected token R"
+        if(!res.ok){
+            const errBody = await res.text();
+            throw new Error(`Server trả về ${res.status}: ${errBody.substring(0,100)}...`);
+        }
+        
         data = await res.json();
         typing.style.display='none';
 
         if(data.error){
             appendMsg('ai','⚠️ Lỗi: '+data.error);
-            chatHistory.pop(); // Xóa tin nhắn user nếu lỗi
+            chatHistory.pop();
         }else{
             appendMsg('ai',data.response,null,data.function_calls,data.search_sources);
             chatHistory.push({role:'model',parts:[{text:data.response}]});
         }
     }catch(err){
         typing.style.display='none';
-        appendMsg('ai','⚠️ Lỗi kết nối: '+err);
+        appendMsg('ai','⚠️ Lỗi kết nối: '+err.message);
         chatHistory.pop();
     }
 }
