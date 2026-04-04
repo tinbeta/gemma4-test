@@ -13,6 +13,13 @@ api_key = os.getenv("GEMINI_API_KEY")
 app = Flask(__name__)
 CORS(app)
 
+# Giới hạn kích thước payload (Vercel limit ~4.5MB, để 4MB cho an toàn)
+app.config['MAX_CONTENT_LENGTH'] = 4 * 1024 * 1024
+
+@app.errorhandler(413)
+def request_entity_too_large(error):
+    return jsonify({"error": "File quá lớn! Vercel giới hạn tối đa 4MB bộ nhớ đệm. Vui lòng chọn ảnh nhỏ hơn."}), 413
+
 client = genai.Client(api_key=api_key)
 
 conversation_history = []

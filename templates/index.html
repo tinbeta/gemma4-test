@@ -329,7 +329,18 @@ function handleKey(e){
 
 function previewImage(e){
     const f=e.target.files[0];
-    if(f){selectedFile=f;const r=new FileReader();r.onload=x=>{previewImg.src=x.target.result;previewBar.style.display='flex'};r.readAsDataURL(f)}
+    if(f){
+        // Check size: Vercel limits paylod ~4MB.
+        if (f.size > 3.5 * 1024 * 1024) {
+            alert('⚠️ Ảnh quá lớn (> 3.5MB)! Vercel không hỗ trợ tải lên tệp quá lớn. Vui lòng chọn ảnh khác.');
+            $('image-upload').value = '';
+            return;
+        }
+        selectedFile=f;
+        const r=new FileReader();
+        r.onload=x=>{previewImg.src=x.target.result;previewBar.style.display='flex'};
+        r.readAsDataURL(f)
+    }
 }
 
 function clearImage(){selectedFile=null;$('image-upload').value='';previewBar.style.display='none'}
@@ -349,7 +360,13 @@ function appendMsg(role,content,imgSrc=null,fnCalls=null,sources=null){
     const t=document.createElement('div');
     if(role==='ai'){
         t.className='md';
-        t.innerHTML=marked.parse(content);
+        if(content.startsWith('⚠️')){
+            t.style.color='var(--red)';
+            t.style.fontWeight='600';
+            t.innerHTML=content;
+        }else{
+            t.innerHTML=marked.parse(content);
+        }
     }else{
         t.innerText=content;
     }
@@ -410,16 +427,28 @@ async function sendMessage(){
 
     try{
         const res=await fetch('/send',{method:'POST',body:fd});
-        const data=await res.json();
+        let data;
+        try {
+            data = await res.json();
+        } catch (e) {
+            // Trường hợp Vercel trả về HTML lỗi (như 413 hoặc 504)
+            const text = await res.text();
+            if (res.status === 413) {
+                data = { error: "⚠️ Ảnh quá lớn! Vercel giới hạn tối đa 4.5MB cho mỗi yêu cầu." };
+            } else {
+                data = { error: "Lỗi hệ thống (" + res.status + "): Server không phản hồi đúng định dạng JSON." };
+            }
+        }
+
         typing.style.display='none';
         if(data.error){
-            appendMsg('ai','⚠️ Lỗi: '+data.error);
+            appendMsg('ai', data.error);
         }else{
             appendMsg('ai',data.response,null,data.function_calls,data.search_sources);
         }
     }catch(err){
         typing.style.display='none';
-        appendMsg('ai','⚠️ Lỗi kết nối: '+err);
+        appendMsg('ai','⚠️ Lỗi kết nối: ' + err.message);
     }
 }
 
