@@ -154,5 +154,5 @@ Dự án này được phân phối dưới giấy phép [Apache 2.0](https://ww
 ---
 
 <p align="center">
-  <sub>Built with ❤️ for the Gemma 4 community</sub>
+  <sub> Tinbeta Built with ❤️ for the Gemma 4 community</sub>
 </p>
