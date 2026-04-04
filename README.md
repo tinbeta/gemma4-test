@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="public/banner.png" alt="Gemma 4 Playground" width="100%">
+  <img src="public/banner.png" alt="Gemma 4 Testing" width="100%">
 </p>
 
 <p align="center">
