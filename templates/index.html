@@ -385,7 +385,13 @@ function appendMsg(role,content,imgSrc=null,fnCalls=null,sources=null){
 
 async function sendMessage(){
     const text=userInput.value.trim();
-    if(!text&&!selectedFile)return;
+    if(!text && !selectedFile)return;
+
+    const apiKey=$('api-key-input').value.trim();
+    if(!apiKey){
+        appendMsg('ai','⚠️ Vui lòng nhập **API Key** ở sidebar trước khi gửi tin nhắn.\n\n👉 [Lấy API Key miễn phí tại đây](https://aistudio.google.com/apikey)');
+        return;
+    }
 
     let sys=$('system-input').value;
     if($('toggle-think').checked){
@@ -395,22 +401,61 @@ async function sendMessage(){
     appendMsg('user',text,selectedFile?previewImg.src:null);
     const fileToUpload=selectedFile;
     userInput.value='';userInput.style.height='auto';
+    const currentImgSrc=previewImg.src;
     clearImage();
     typing.style.display='block';
 
-    const fd=new FormData();
-    fd.append('message',text);
-    fd.append('model',$('model-select').value);
-    fd.append('system_instruction',sys);
-    fd.append('google_search',$('toggle-search').checked);
-    fd.append('function_calling',$('toggle-fn').checked);
-    const apiKey=$('api-key-input').value.trim();
-    if(apiKey)fd.append('api_key',apiKey);
-    if(fileToUpload)fd.append('image',fileToUpload);
+    const isVercel = !window.location.hostname.includes('127.0.0.1') && !window.location.hostname.includes('localhost');
+    const endpoint = isVercel ? '/api/send' : '/send';
 
     try{
-        const res=await fetch('/send',{method:'POST',body:fd});
-        const data=await res.json();
+        let res, data;
+        if(isVercel){
+            // Vercel: gửi JSON
+            const payload = {
+                api_key: apiKey,
+                message: text,
+                model: $('model-select').value,
+                system_instruction: sys,
+                history: [], // templates/index.html cũ không có history biến cục bộ, ta có thể bỏ qua hoặc lấy từ DOM
+                google_search: $('toggle-search').checked,
+                function_calling: $('toggle-fn').checked,
+            };
+
+            if(fileToUpload){
+                if(fileToUpload.size > 3 * 1024 * 1024) {
+                    typing.style.display='none';
+                    appendMsg('ai','⚠️ Lỗi: Ảnh quá lớn (>3MB). Vercel có giới hạn kích thước request. Vui lòng chọn ảnh nhỏ hơn.');
+                    return;
+                }
+                payload.image = currentImgSrc.split(',')[1];
+                payload.image_mime = fileToUpload.type;
+            }
+
+            res = await fetch(endpoint,{
+                method:'POST',
+                headers:{'Content-Type':'application/json'},
+                body:JSON.stringify(payload)
+            });
+        } else {
+            // Local Flask: gửi FormData
+            const fd=new FormData();
+            fd.append('message',text);
+            fd.append('model',$('model-select').value);
+            fd.append('system_instruction',sys);
+            fd.append('google_search',$('toggle-search').checked);
+            fd.append('function_calling',$('toggle-fn').checked);
+            if(apiKey)fd.append('api_key',apiKey);
+            if(fileToUpload)fd.append('image',fileToUpload);
+            res = await fetch(endpoint,{method:'POST',body:fd});
+        }
+
+        if(!res.ok){
+            const errBody = await res.text();
+            throw new Error(`Server trả về ${res.status}: ${errBody.substring(0,100)}...`);
+        }
+
+        data = await res.json();
         typing.style.display='none';
         if(data.error){
             appendMsg('ai','⚠️ Lỗi: '+data.error);
@@ -419,7 +464,7 @@ async function sendMessage(){
         }
     }catch(err){
         typing.style.display='none';
-        appendMsg('ai','⚠️ Lỗi kết nối: '+err);
+        appendMsg('ai','⚠️ Lỗi kết nối: '+err.message);
     }
 }
 
