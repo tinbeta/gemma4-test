@@ -326,7 +326,6 @@
 marked.setOptions({breaks:true,gfm:true,highlight:(code)=>hljs.highlightAuto(code).value});
 
 let selectedFile=null;
-let chatHistory=[];
 const $=id=>document.getElementById(id);
 const msgs=$('messages'), typing=$('typing'), previewBar=$('preview-bar'),
       previewImg=$('preview-img'), userInput=$('user-input'), activeToolsBar=$('active-tools');
@@ -388,7 +387,6 @@ function previewImage(e){
 function clearImage(){selectedFile=null;$('image-upload').value='';previewBar.style.display='none'}
 
 async function clearChat(){
-    chatHistory = [];
     try{await fetch('/clear',{method:'POST'})}catch(e){}
     msgs.innerHTML='';
     appendMsg('ai','Lịch sử đã được xóa. Bạn muốn bắt đầu lại từ đâu?');
@@ -464,8 +462,6 @@ async function sendMessage(){
     fd.append('system_instruction',sys);
     fd.append('google_search',$('toggle-search').checked);
     fd.append('function_calling',$('toggle-fn').checked);
-    fd.append('history', JSON.stringify(chatHistory));
-
     const apiKey=$('api-key-input').value.trim();
     if(apiKey)fd.append('api_key',apiKey);
     if(fileToUpload)fd.append('image',fileToUpload);
@@ -490,8 +486,6 @@ async function sendMessage(){
             appendMsg('ai', data.error);
         }else{
             appendMsg('ai',data.response,null,data.function_calls,data.search_sources);
-            if(text) chatHistory.push({role: 'user', text: text});
-            if(data.response) chatHistory.push({role: 'model', text: data.response});
         }
     }catch(err){
         typing.style.display='none';

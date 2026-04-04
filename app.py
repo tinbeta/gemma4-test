@@ -22,6 +22,8 @@ def request_entity_too_large(error):
 
 client = genai.Client(api_key=api_key)
 
+conversation_history = []
+
 SAMPLE_FUNCTIONS = [
     {
         "name": "get_weather",
@@ -116,6 +118,8 @@ def index():
 
 @app.route("/send", methods=["POST"])
 def send_message():
+    global conversation_history
+
     message = request.form.get("message", "")
     model_name = request.form.get("model", "gemma-4-26b-a4b-it")
     system_instruction = request.form.get("system_instruction", "")
@@ -124,21 +128,7 @@ def send_message():
     enable_functions = request.form.get("function_calling", "false") == "true"
     custom_api_key = request.form.get("api_key", "").strip()
 
-    # Nhận lịch sử chat từ giao diện đẩy lên
-    history_json = request.form.get("history", "[]")
-    try:
-        raw_history = json.loads(history_json)
-    except Exception:
-        raw_history = []
-
-    # Dựng lại cuộc hội thoại stateless bằng mảng cục bộ
-    conversation_history = []
-    for item in raw_history:
-        role = item.get("role", "user")
-        text = item.get("text", "")
-        if text:
-            conversation_history.append(types.Content(role=role, parts=[types.Part.from_text(text=text)]))
-
+    # Sử dụng API key tùy chỉnh nếu có, nếu không thì dùng key mặc định
     active_client = client
     if custom_api_key:
         active_client = genai.Client(api_key=custom_api_key)
@@ -237,11 +227,15 @@ def send_message():
         return jsonify(result)
 
     except Exception as e:
+        if conversation_history and conversation_history[-1].role == "user":
+            conversation_history.pop()
         return jsonify({"error": str(e)}), 500
 
 
 @app.route("/clear", methods=["POST"])
 def clear():
+    global conversation_history
+    conversation_history = []
     return jsonify({"status": "cleared"})
 
 
