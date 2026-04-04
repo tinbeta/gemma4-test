@@ -35,8 +35,7 @@ gemma4/
 ├── 🌐 public/              # Frontend tĩnh (Vercel)
 │   └── index.html           # Giao diện chatbot
 ├── ⚡ api/                  # Serverless functions (Vercel)
-│   ├── send.py              # API endpoint chính
-│   └── requirements.txt     # Dependencies cho serverless
+│   └── send.py              # API endpoint duy nhất xử lý backend
 ├── 🐍 app.py                # Flask server (chạy local)
 ├── 📁 templates/
 │   └── index.html           # Template cho Flask
@@ -59,8 +58,8 @@ gemma4/
 
 ```bash
 # 1. Clone repo
-git clone https://github.com/your-username/gemma4-playground.git
-cd gemma4-playground
+git clone https://github.com/tinbeta/gemma4-test.git
+cd gemma4-test
 
 # 2. Tạo môi trường ảo
 python3 -m venv venv
@@ -88,7 +87,7 @@ npm i -g vercel
 vercel --prod
 ```
 
-> **Lưu ý:** Phiên bản Vercel không cần `.env` — người dùng tự nhập API Key trên giao diện.
+> **Lưu ý Quan Trọng:** Khi deploy trên Vercel, bạn bắt buộc phải gán biến môi trường `GEMINI_API_KEY=your_key` trực tiếp trên Vercel Dashboard (Settings > Environment Variables) thì serverless backend mới có khởi tạo được API! (Hoặc có thể chạy lệnh `vercel env add GEMINI_API_KEY`).
 
 ## 🔑 Lấy API Key
 
