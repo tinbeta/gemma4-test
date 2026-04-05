@@ -168,9 +168,19 @@ def send_message():
         if enable_functions:
             tools_list.append(types.Tool(function_declarations=SAMPLE_FUNCTIONS))
 
+        # Chỉ dẫn hệ thống mặc định để tối ưu hóa việc dùng Tool (giúp tiết kiệm thời gian)
+        BASE_SYSTEM = (
+            "Bạn là trợ lý AI chuyên nghiệp. "
+            "Nếu Google Search được bật, CHỈ SỬ DỤNG nó khi câu hỏi của người dùng thực sự cần thông tin mới nhất, tin tức thời sự hoặc dữ liệu thực tế mà bạn không biết chắc chắn. "
+            "Với các câu chào hỏi, thảo luận chung hoặc kiến thức phổ thông, hãy trả lời trực tiếp ngay lập tức."
+        )
+
         config = types.GenerateContentConfig()
+        combined_sys = BASE_SYSTEM
         if system_instruction:
-            config.system_instruction = system_instruction
+            combined_sys += "\n\nChỉ dẫn bổ sung từ người dùng:\n" + system_instruction
+        
+        config.system_instruction = combined_sys
         if tools_list:
             config.tools = tools_list
 
