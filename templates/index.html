@@ -450,21 +450,34 @@ async function sendMessage(){
     fd.append('api_key',apiKey);
     fd.append('history',JSON.stringify(chatHistory.slice(0,-1)));
 
+    if(fileToUpload && fileToUpload.size > 4 * 1024 * 1024) {
+        typing.style.display='none';
+        appendMsg('ai','⚠️ Lỗi: File quá lớn! Vercel giới hạn tối đa 4MB. Vui lòng chọn ảnh nhỏ hơn.');
+        chatHistory.pop();
+        return;
+    }
+
     try{
         let res = await fetch('/send',{method:'POST',body:fd});
-        let data = await res.json();
+        let data;
+        try {
+            data = await res.json();
+        } catch (e) {
+            if(!res.ok) throw new Error(res.status === 413 ? "File quá lớn đối với máy chủ!" : "Lỗi server ("+res.status+")");
+            throw e;
+        }
         typing.style.display='none';
 
         if(data.error){
             appendMsg('ai','⚠️ Lỗi: '+data.error);
-            chatHistory.pop(); // Xóa tin nhắn user nếu lỗi
+            chatHistory.pop();
         }else{
             appendMsg('ai',data.response,null,data.function_calls,data.search_sources);
             chatHistory.push({role:'model',parts:[{text:data.response}]});
         }
     }catch(err){
         typing.style.display='none';
-        appendMsg('ai','⚠️ Lỗi kết nối: '+err);
+        appendMsg('ai','⚠️ '+err.message);
         chatHistory.pop();
     }
 }
