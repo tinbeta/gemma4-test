@@ -415,6 +415,11 @@ function clearChat(){
     appendMsg('ai', `Xin chào! Tôi là **${name}** — trợ lý AI mã nguồn mở. Lịch sử đã được xóa.`, null, null, null, true);
 }
 
+let userScrolledUp = false;
+msgs.addEventListener('scroll', () => {
+    userScrolledUp = msgs.scrollHeight - msgs.scrollTop - msgs.clientHeight > 80;
+});
+
 async function appendMsg(role,content,imgSrc=null,fnCalls=null,sources=null,animate=false){
     const group=document.createElement('div');
     group.className='msg-group '+role;
@@ -449,13 +454,16 @@ async function appendMsg(role,content,imgSrc=null,fnCalls=null,sources=null,anim
 
     msgs.appendChild(group);
     
+    const screenThreshold = msgs.clientHeight * 0.9;
+    const shouldAutoScroll = () => !userScrolledUp && group.offsetHeight < screenThreshold;
+    
     if(animate && role==='ai') {
         const words = content.split(' ');
         let current = '';
         for(let i=0; i<words.length; i++) {
             current += words[i] + ' ';
             t.innerHTML = marked.parse(current);
-            msgs.scrollTop = msgs.scrollHeight;
+            if(shouldAutoScroll()) msgs.scrollTop = msgs.scrollHeight;
             await new Promise(r => setTimeout(r, 30));
         }
     } else {
@@ -463,7 +471,7 @@ async function appendMsg(role,content,imgSrc=null,fnCalls=null,sources=null,anim
         else{t.innerText=content}
     }
 
-    msgs.scrollTop = msgs.scrollHeight;
+    if(shouldAutoScroll()) msgs.scrollTop = msgs.scrollHeight;
     d.querySelectorAll('pre code').forEach(b => hljs.highlightElement(b));
 }
 
@@ -520,6 +528,7 @@ async function sendMessage(){
             appendMsg('ai','⚠️ Lỗi: '+data.error);
             chatHistory.pop();
         }else{
+            userScrolledUp = false;
             appendMsg('ai',data.response,null,data.function_calls,data.search_sources,true);
             chatHistory.push({role:'model',parts:[{text:data.response}]});
         }
