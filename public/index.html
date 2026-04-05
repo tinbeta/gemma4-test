@@ -437,37 +437,18 @@ async function sendMessage(){
     // Thêm tin nhắn user vào lịch sử
     chatHistory.push({role:'user',parts:[{text:text}]});
 
-    // Quyết định endpoint (local Flask hoặc Vercel serverless)
-    const isVercel = !window.location.hostname.includes('127.0.0.1') && !window.location.hostname.includes('localhost');
-    const endpoint = isVercel ? '/api/send' : '/send';
-
-    const payload = {
-        api_key: apiKey,
-        message: text,
-        model: $('model-select').value,
-        system_instruction: sys,
-        history: chatHistory.slice(0,-1), // Gửi lịch sử (trừ tin nhắn vừa thêm, vì message đã gửi riêng)
-        google_search: $('toggle-search').checked,
-        function_calling: $('toggle-fn').checked,
-    };
+    const fd=new FormData();
+    fd.append('message',text);
+    fd.append('model',$('model-select').value);
+    fd.append('system_instruction',sys);
+    fd.append('google_search',$('toggle-search').checked);
+    fd.append('function_calling',$('toggle-fn').checked);
+    fd.append('api_key',apiKey);
+    fd.append('history',JSON.stringify(chatHistory.slice(0,-1)));
 
     try{
-        let res, data;
-        if(isVercel){
-            // Vercel: gửi JSON
-            res = await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-        } else {
-            // Local Flask: gửi FormData (vẫn hoạt động với app.py cũ)
-            const fd=new FormData();
-            fd.append('message',text);
-            fd.append('model',$('model-select').value);
-            fd.append('system_instruction',sys);
-            fd.append('google_search',$('toggle-search').checked);
-            fd.append('function_calling',$('toggle-fn').checked);
-            fd.append('api_key',apiKey);
-            res = await fetch(endpoint,{method:'POST',body:fd});
-        }
-        data = await res.json();
+        let res = await fetch('/send',{method:'POST',body:fd});
+        let data = await res.json();
         typing.style.display='none';
 
         if(data.error){

@@ -117,6 +117,7 @@ def index():
 
 
 @app.route("/send", methods=["POST"])
+@app.route("/api/send", methods=["POST"])
 def send_message():
     message = request.form.get("message", "")
     model_name = request.form.get("model", "gemma-4-26b-a4b-it")
