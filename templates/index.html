@@ -136,12 +136,28 @@
         .md code{font-family:'JetBrains Mono',monospace;background:rgba(255,255,255,.08);padding:2px 6px;border-radius:4px;font-size:.85em}
         .md pre{margin:.8rem 0;border-radius:10px;overflow:hidden;border:1px solid var(--border);background:#0d1117!important}
         .md pre code{display:block;padding:14px;background:transparent!important;overflow-x:auto;font-size:.82rem}
-        .md a{color:var(--text-link);text-decoration:none}
         .md a:hover{text-decoration:underline}
         .md blockquote{border-left:3px solid var(--accent);padding-left:12px;margin:.8rem 0;color:var(--text-dim)}
         .md table{border-collapse:collapse;margin:.8rem 0;width:100%}
         .md th,.md td{border:1px solid var(--border);padding:8px 12px;text-align:left;font-size:.85rem}
         .md th{background:var(--bg-input);font-weight:600}
+
+        /* Message Wrapper */
+        .msg-group{display:flex;flex-direction:column;max-width:82%;gap:4px;animation:pop .25s ease-out}
+        .msg-group.user{align-self:flex-end;align-items:flex-end}
+        .msg-group.ai{align-self:flex-start;align-items:flex-start}
+
+        .msg{width:fit-content;max-width:100%;padding:14px 18px;border-radius:16px;font-size:.92rem;line-height:1.65;position:relative}
+        .msg.user{background:var(--bg-bubble-user);color:#fff;border-bottom-right-radius:4px}
+        .msg.ai{background:var(--bg-bubble-ai);border:1px solid var(--border);color:var(--text);border-bottom-left-radius:4px}
+
+        .msg-footer{display:flex;margin-top:2px}
+        .copy-btn{
+            background:transparent;border:none;color:var(--text-dim);cursor:pointer;
+            font-size:.65rem;padding:2px 6px;border-radius:4px;transition:.2s;display:flex;align-items:center;gap:4px;font-weight:600;
+        }
+        .copy-btn:hover{color:var(--text);background:rgba(255,255,255,0.06)}
+        .copy-btn svg{width:11px;height:11px;fill:currentColor}
 
         /* Function Call Card */
         .fn-card{background:rgba(137,87,229,.08);border:1px solid rgba(137,87,229,.25);border-radius:12px;padding:14px 16px;margin-top:10px}
@@ -393,6 +409,9 @@ function clearChat(){
 }
 
 function appendMsg(role,content,imgSrc=null,fnCalls=null,sources=null){
+    const group=document.createElement('div');
+    group.className='msg-group '+role;
+    
     const d=document.createElement('div');
     d.className='msg '+role;
     if(imgSrc){const img=document.createElement('img');img.src=imgSrc;d.appendChild(img)}
@@ -414,7 +433,16 @@ function appendMsg(role,content,imgSrc=null,fnCalls=null,sources=null){
             +sources.map(x=>`<a class="source-chip" href="${x.url}" target="_blank">${x.title}</a>`).join('');
         d.appendChild(s);
     }
-    msgs.appendChild(d);
+    group.appendChild(d);
+    
+    // Nút copy nằm bên ngoài bubble
+    const footer=document.createElement('div');
+    footer.className='msg-footer';
+    footer.innerHTML=`<button class="copy-btn" onclick="copyMsg(this)">
+        <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>Copy</button>`;
+    group.appendChild(footer);
+
+    msgs.appendChild(group);
     msgs.scrollTop=msgs.scrollHeight;
     d.querySelectorAll('pre code').forEach(b=>hljs.highlightElement(b));
 }
@@ -495,6 +523,18 @@ function updateApiStatus(){
     el.style.display='block';
 }
 updateApiStatus();
+
+function copyMsg(btn) {
+    const group = btn.closest('.msg-group');
+    const textDiv = group.querySelector('.md') || group.querySelector('.msg div:not(.sources):not(.fn-card)');
+    const text = textDiv.innerText;
+    
+    navigator.clipboard.writeText(text).then(() => {
+        const original = btn.innerHTML;
+        btn.innerHTML = '✓ Copied';
+        setTimeout(() => { btn.innerHTML = original; }, 2000);
+    });
+}
 </script>
 </body>
 </html>
