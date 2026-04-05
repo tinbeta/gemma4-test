@@ -317,7 +317,7 @@
         </header>
 
         <div class="messages" id="messages">
-            <div class="msg ai"><div class="md">Xin chào! Tôi là Gemma 4 — trợ lý AI mã nguồn mở. Bạn có thể bật <strong>Google Search</strong> để tra cứu thông tin mới nhất, hoặc <strong>Function Calling</strong> để tôi gọi các hàm tự động. Hãy thử ngay!</div></div>
+            <div class="msg ai"><div class="md" id="initial-ai-msg">Xin chào! Tôi là Gemma 4 — trợ lý AI mã nguồn mở.</div></div>
         </div>
 
         <div class="typing" id="typing"><span>●</span>&nbsp;<span>●</span>&nbsp;<span>●</span>&nbsp; Đang xử lý...</div>
@@ -361,7 +361,12 @@ const msgs=$('messages'), typing=$('typing'), previewBar=$('preview-bar'),
       modelSelect=$('model-select'), headerTitle=$('header-title');
 
 function updateHeaderTitle() {
-    headerTitle.textContent = modelSelect.options[modelSelect.selectedIndex].text;
+    const name = modelSelect.options[modelSelect.selectedIndex].text;
+    headerTitle.textContent = name;
+    const initialMsg = $('initial-ai-msg');
+    if(initialMsg) {
+        initialMsg.innerHTML = `Xin chào! Tôi là <strong>${name}</strong> — trợ lý AI mã nguồn mở.`;
+    }
 }
 modelSelect.addEventListener('change', updateHeaderTitle);
 updateHeaderTitle();
@@ -405,7 +410,8 @@ function clearImage(){selectedFile=null;$('image-upload').value='';previewBar.st
 function clearChat(){
     chatHistory=[];
     msgs.innerHTML='';
-    appendMsg('ai','Lịch sử đã được xóa. Bạn muốn bắt đầu lại từ đâu?');
+    const name = modelSelect.options[modelSelect.selectedIndex].text;
+    appendMsg('ai', `Xin chào! Tôi là **${name}** — trợ lý AI mã nguồn mở. Lịch sử đã được xóa.`);
 }
 
 function appendMsg(role,content,imgSrc=null,fnCalls=null,sources=null){
