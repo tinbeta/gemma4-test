@@ -421,7 +421,7 @@ function appendMsg(role,content,imgSrc=null,fnCalls=null,sources=null){
 
 async function sendMessage(){
     const text=userInput.value.trim();
-    if(!text)return;
+    if(!text && !selectedFile)return;
 
     const apiKey=$('api-key-input').value.trim();
 
@@ -430,7 +430,10 @@ async function sendMessage(){
         sys=(sys?sys+'\n\n':'')+'Hãy suy nghĩ từng bước chi tiết trước khi đưa ra câu trả lời cuối cùng. Trình bày phần suy luận trong khối "### 🧠 Suy nghĩ" và câu trả lời trong "### ✅ Kết luận".';
     }
 
-    appendMsg('user',text);
+    const imgData = selectedFile?previewImg.src:null;
+    const fileToUpload = selectedFile;
+    appendMsg('user',text,imgData);
+    clearImage();
     userInput.value='';userInput.style.height='auto';
     typing.style.display='block';
 
@@ -439,6 +442,7 @@ async function sendMessage(){
 
     const fd=new FormData();
     fd.append('message',text);
+    if(fileToUpload) fd.append('image',fileToUpload);
     fd.append('model',$('model-select').value);
     fd.append('system_instruction',sys);
     fd.append('google_search',$('toggle-search').checked);

@@ -1,7 +1,7 @@
 import os
 import json
 import math
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 from google import genai
 from google.genai import types
@@ -113,7 +113,7 @@ def execute_function(name, args):
 
 @app.route("/")
 def index():
-    return app.send_static_file("index.html")
+    return render_template("index.html")
 
 
 @app.route("/send", methods=["POST"])
