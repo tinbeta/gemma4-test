@@ -4,3 +4,4 @@ run_web_ui.sh
 venv/
 __pycache__/
 *.pyc
+requirements.txt
