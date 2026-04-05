@@ -1,7 +1,7 @@
 import os
 import json
 import math
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 from google import genai
 from google.genai import types
@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 load_dotenv()
 api_key = os.getenv("GEMINI_API_KEY")
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='public', static_url_path='')
 CORS(app)
 
 # Giới hạn kích thước payload (Vercel limit ~4.5MB, để 4MB cho an toàn)
@@ -113,7 +113,7 @@ def execute_function(name, args):
 
 @app.route("/")
 def index():
-    return render_template("index.html")
+    return app.send_static_file("index.html")
 
 
 @app.route("/send", methods=["POST"])

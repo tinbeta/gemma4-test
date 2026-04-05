@@ -1,5 +1,6 @@
 import json
 import math
+import os
 from http.server import BaseHTTPRequestHandler
 from google import genai
 from google.genai import types
@@ -112,9 +113,9 @@ class handler(BaseHTTPRequestHandler):
             self._respond(400, {"error": "Invalid JSON"})
             return
 
-        api_key = data.get("api_key", "").strip()
+        api_key = data.get("api_key", "").strip() or os.getenv("GEMINI_API_KEY", "")
         if not api_key:
-            self._respond(400, {"error": "API Key is required. Vui lòng nhập API Key ở sidebar."})
+            self._respond(400, {"error": "Thiếu API Key! Vui lòng nhập ở sidebar hoặc cấu hình biến môi trường GEMINI_API_KEY."})
             return
 
         message = data.get("message", "")

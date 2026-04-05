@@ -12,6 +12,10 @@
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark-dimmed.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <!-- KaTeX cho hiển thị công thức Toán -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked-katex-extension/lib/index.umd.js"></script>
     <style>
         *{box-sizing:border-box;margin:0;padding:0}
         :root{
@@ -189,16 +193,37 @@
         }
 
         .active-tools{display:flex;gap:6px;padding-bottom:10px;flex-shrink:0}
-        .active-pill{font-size:.68rem;padding:3px 8px;border-radius:4px;font-weight:600}
+        .active-pill{font-size:.68rem;padding:3px 8px;border-radius:4px;font-weight:600;cursor:pointer;opacity:0.4;transition:0.2s;user-select:none;}
+        .active-pill:hover{opacity:0.8}
+        .active-pill.active{opacity:1}
         .active-pill.search-pill{background:rgba(31,111,235,.12);color:#58a6ff;border:1px solid rgba(31,111,235,.25)}
         .active-pill.fn-pill{background:rgba(137,87,229,.1);color:#c9a0ff;border:1px solid rgba(137,87,229,.2)}
         .active-pill.think-pill{background:rgba(210,153,34,.1);color:#d29922;border:1px solid rgba(210,153,34,.2)}
+
+        /* ── RESPONSIVE ── */
+        .menu-btn{display:none;background:transparent;border:none;color:var(--text);cursor:pointer;padding:4px;border-radius:6px}
+        .menu-btn:hover{background:rgba(255,255,255,0.05)}
+        .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9;backdrop-filter:blur(2px)}
+        @media(max-width:768px){
+            .app{grid-template-columns:1fr}
+            .sidebar{position:fixed;left:-320px;top:0;bottom:0;width:300px;z-index:10;transition:transform 0.3s cubic-bezier(0.4,0,0.2,1);box-shadow:4px 0 24px rgba(0,0,0,0.5)}
+            .sidebar.show{transform:translateX(320px)}
+            .sidebar-overlay.show{display:block;animation:fadein 0.3s}
+            .menu-btn{display:flex;align-items:center}
+            .msg{max-width:92%}
+            .input-area{padding:12px 16px 16px}
+            .messages{padding:20px 16px}
+            .active-tools{overflow-x:auto;padding-bottom:6px}
+            .active-tools::-webkit-scrollbar{display:none}
+        }
+        @keyframes fadein{from{opacity:0}to{opacity:1}}
     </style>
 </head>
 <body>
 <div class="app">
     <!-- SIDEBAR -->
-    <aside class="sidebar">
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+    <aside class="sidebar" id="sidebar">
         <div class="logo">
             <div class="logo-icon"><svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg></div>
             Gemma 4
@@ -217,8 +242,8 @@
         <div>
             <div class="section-title">Mô hình</div>
             <select id="model-select">
-                <option value="gemma-4-31b-it">Gemma 4 31B — Dense</option>
                 <option value="gemma-4-26b-a4b-it">Gemma 4 26B — MoE</option>
+                <option value="gemma-4-31b-it">Gemma 4 31B — Dense</option>
             </select>
         </div>
 
@@ -231,7 +256,7 @@
                         <div class="tool-icon search"><svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg></div>
                         <div><div class="tool-name">Google Search</div><div class="tool-desc">Tra cứu web real-time</div></div>
                     </div>
-                    <label class="switch"><input type="checkbox" id="toggle-search"><span class="track"></span></label>
+                    <label class="switch"><input type="checkbox" id="toggle-search" checked><span class="track"></span></label>
                 </div>
 
                 <div class="tool-toggle">
@@ -266,7 +291,12 @@
     <!-- CHAT -->
     <main class="chat">
         <header class="chat-header">
-            <div class="header-title">AI Assistant</div>
+            <div style="display:flex;align-items:center;gap:12px;">
+                <button class="menu-btn" onclick="toggleSidebar()">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
+                </button>
+                <div class="header-title" id="header-title">AI Assistant</div>
+            </div>
             <div class="header-badge"><span class="dot"></span>Online</div>
         </header>
 
@@ -285,7 +315,11 @@
         </div>
 
         <div class="input-area">
-            <div class="active-tools" id="active-tools"></div>
+            <div class="active-tools" id="active-tools">
+                <span id="pill-search" class="active-pill search-pill" onclick="toggleTool('toggle-search')">🔍 Google Search</span>
+                <span id="pill-fn" class="active-pill fn-pill" onclick="toggleTool('toggle-fn')">⚡ Function Calling</span>
+                <span id="pill-think" class="active-pill think-pill" onclick="toggleTool('toggle-think')">🧠 Thinking</span>
+            </div>
             <div class="input-row">
                 <label for="image-upload" class="input-btn" title="Đính kèm ảnh">
                     <svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
@@ -301,12 +335,25 @@
 </div>
 
 <script>
+marked.use(markedKatex({ throwOnError: false }));
 marked.setOptions({breaks:true,gfm:true,highlight:(code)=>hljs.highlightAuto(code).value});
 
 let selectedFile=null;
 const $=id=>document.getElementById(id);
 const msgs=$('messages'), typing=$('typing'), previewBar=$('preview-bar'),
-      previewImg=$('preview-img'), userInput=$('user-input'), activeToolsBar=$('active-tools');
+      previewImg=$('preview-img'), userInput=$('user-input'), activeToolsBar=$('active-tools'),
+      modelSelect=$('model-select'), headerTitle=$('header-title');
+
+function updateHeaderTitle() {
+    headerTitle.textContent = modelSelect.options[modelSelect.selectedIndex].text;
+}
+modelSelect.addEventListener('change', updateHeaderTitle);
+updateHeaderTitle();
+
+function toggleSidebar() {
+    $('sidebar').classList.toggle('show');
+    $('sidebar-overlay').classList.toggle('show');
+}
 
 // Lịch sử hội thoại (quản lý trên frontend cho Vercel stateless)
 let chatHistory = [];
@@ -314,16 +361,18 @@ let chatHistory = [];
 userInput.addEventListener('input',function(){this.style.height='auto';this.style.height=this.scrollHeight+'px'});
 
 function updateToolsBar(){
-    const pills=[];
-    if($('toggle-search').checked) pills.push('<span class="active-pill search-pill">🔍 Google Search</span>');
-    if($('toggle-fn').checked) pills.push('<span class="active-pill fn-pill">⚡ Function Calling</span>');
-    if($('toggle-think').checked) pills.push('<span class="active-pill think-pill">🧠 Thinking</span>');
-    activeToolsBar.innerHTML=pills.join('');
-    activeToolsBar.style.display=pills.length?'flex':'none';
+    if($('pill-search')) $('pill-search').className = 'active-pill search-pill' + ($('toggle-search').checked ? ' active' : '');
+    if($('pill-fn')) $('pill-fn').className = 'active-pill fn-pill' + ($('toggle-fn').checked ? ' active' : '');
+    if($('pill-think')) $('pill-think').className = 'active-pill think-pill' + ($('toggle-think').checked ? ' active' : '');
+}
+function toggleTool(id) {
+    $(id).checked = !$(id).checked;
+    updateToolsBar();
 }
 $('toggle-search').addEventListener('change',updateToolsBar);
 $('toggle-fn').addEventListener('change',updateToolsBar);
 $('toggle-think').addEventListener('change',updateToolsBar);
+updateToolsBar();
 
 function handleKey(e){
     if(e.isComposing||e.keyCode===229)return;
@@ -375,10 +424,6 @@ async function sendMessage(){
     if(!text)return;
 
     const apiKey=$('api-key-input').value.trim();
-    if(!apiKey){
-        appendMsg('ai','⚠️ Vui lòng nhập **API Key** ở sidebar trước khi gửi tin nhắn.\n\n👉 [Lấy API Key miễn phí tại đây](https://aistudio.google.com/apikey)');
-        return;
-    }
 
     let sys=$('system-input').value;
     if($('toggle-think').checked){
@@ -444,10 +489,10 @@ function updateApiStatus(){
     const el=$('api-status');
     if(key.length>10){
         el.className='api-status ok';
-        el.textContent='✓ API Key đã sẵn sàng';
+        el.textContent='✓ Đang dùng Custom API Key';
     }else{
         el.className='api-status using-env';
-        el.textContent='Chưa nhập API Key';
+        el.textContent='✓ Đang dùng Server API Key';
     }
     el.style.display='block';
 }
