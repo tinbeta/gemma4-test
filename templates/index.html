@@ -365,6 +365,7 @@ function updateHeaderTitle() {
     headerTitle.textContent = name;
     const initialMsg = $('initial-ai-msg');
     if(initialMsg) {
+        // Không dùng hiệu ứng cho bản load ban đầu để tránh phiền
         initialMsg.innerHTML = `Xin chào! Tôi là <strong>${name}</strong> — trợ lý AI mã nguồn mở.`;
     }
 }
@@ -411,10 +412,10 @@ function clearChat(){
     chatHistory=[];
     msgs.innerHTML='';
     const name = modelSelect.options[modelSelect.selectedIndex].text;
-    appendMsg('ai', `Xin chào! Tôi là **${name}** — trợ lý AI mã nguồn mở. Lịch sử đã được xóa.`);
+    appendMsg('ai', `Xin chào! Tôi là **${name}** — trợ lý AI mã nguồn mở. Lịch sử đã được xóa.`, null, null, null, true);
 }
 
-function appendMsg(role,content,imgSrc=null,fnCalls=null,sources=null){
+async function appendMsg(role,content,imgSrc=null,fnCalls=null,sources=null,animate=false){
     const group=document.createElement('div');
     group.className='msg-group '+role;
     
@@ -422,8 +423,7 @@ function appendMsg(role,content,imgSrc=null,fnCalls=null,sources=null){
     d.className='msg '+role;
     if(imgSrc){const img=document.createElement('img');img.src=imgSrc;d.appendChild(img)}
     const t=document.createElement('div');
-    if(role==='ai'){t.className='md';t.innerHTML=marked.parse(content)}
-    else{t.innerText=content}
+    t.className=(role==='ai'?'md':'');
     d.appendChild(t);
 
     if(fnCalls&&fnCalls.length){
@@ -441,7 +441,6 @@ function appendMsg(role,content,imgSrc=null,fnCalls=null,sources=null){
     }
     group.appendChild(d);
     
-    // Nút copy nằm bên ngoài bubble
     const footer=document.createElement('div');
     footer.className='msg-footer';
     footer.innerHTML=`<button class="copy-btn" onclick="copyMsg(this)">
@@ -449,8 +448,23 @@ function appendMsg(role,content,imgSrc=null,fnCalls=null,sources=null){
     group.appendChild(footer);
 
     msgs.appendChild(group);
-    msgs.scrollTop=msgs.scrollHeight;
-    d.querySelectorAll('pre code').forEach(b=>hljs.highlightElement(b));
+    
+    if(animate && role==='ai') {
+        const words = content.split(' ');
+        let current = '';
+        for(let i=0; i<words.length; i++) {
+            current += words[i] + ' ';
+            t.innerHTML = marked.parse(current);
+            msgs.scrollTop = msgs.scrollHeight;
+            await new Promise(r => setTimeout(r, 30));
+        }
+    } else {
+        if(role==='ai'){t.innerHTML=marked.parse(content)}
+        else{t.innerText=content}
+    }
+
+    msgs.scrollTop = msgs.scrollHeight;
+    d.querySelectorAll('pre code').forEach(b => hljs.highlightElement(b));
 }
 
 async function sendMessage(){
@@ -506,7 +520,7 @@ async function sendMessage(){
             appendMsg('ai','⚠️ Lỗi: '+data.error);
             chatHistory.pop();
         }else{
-            appendMsg('ai',data.response,null,data.function_calls,data.search_sources);
+            appendMsg('ai',data.response,null,data.function_calls,data.search_sources,true);
             chatHistory.push({role:'model',parts:[{text:data.response}]});
         }
     }catch(err){
