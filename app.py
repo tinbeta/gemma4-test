@@ -5,10 +5,6 @@ from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 from google import genai
 from google.genai import types
-from dotenv import load_dotenv
-
-load_dotenv()
-api_key = os.getenv("GEMINI_API_KEY")
 
 app = Flask(__name__, static_folder='public', static_url_path='')
 CORS(app)
@@ -20,7 +16,6 @@ app.config['MAX_CONTENT_LENGTH'] = 4 * 1024 * 1024
 def request_entity_too_large(error):
     return jsonify({"error": "File quá lớn! Vercel giới hạn tối đa 4MB bộ nhớ đệm. Vui lòng chọn ảnh nhỏ hơn."}), 413
 
-client = genai.Client(api_key=api_key)
 
 # Lịch sử hội thoại sẽ được truyền từ frontend lên,
 # không lưu bằng global state nữa để hỗ trợ Serverless (Vercel)
@@ -127,10 +122,10 @@ def send_message():
     enable_functions = request.form.get("function_calling", "false") == "true"
     custom_api_key = request.form.get("api_key", "").strip()
 
-    # Sử dụng API key tùy chỉnh nếu có, nếu không thì dùng key mặc định
-    active_client = client
-    if custom_api_key:
-        active_client = genai.Client(api_key=custom_api_key)
+    if not custom_api_key:
+        return jsonify({"error": "Vui lòng nhập Gemini API Key của bạn để test. Ứng dụng này không còn dùng key local/server mặc định nữa."}), 400
+
+    active_client = genai.Client(api_key=custom_api_key)
 
     # --- ĐỌC LỊCH SỬ TỪ FRONTEND ---
     history_str = request.form.get("history", "[]")

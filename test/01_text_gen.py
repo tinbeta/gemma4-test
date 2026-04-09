@@ -1,14 +1,7 @@
-import os
 from google import genai
-from dotenv import load_dotenv
+from _key_helper import get_api_key
 
-# Load API key from .env
-load_dotenv()
-api_key = os.getenv("GEMINI_API_KEY")
-
-if not api_key:
-    print("Error: GEMINI_API_KEY not found in .env file.")
-    exit(1)
+api_key = get_api_key()
 
 client = genai.Client(api_key=api_key)
 

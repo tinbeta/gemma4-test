@@ -25,7 +25,7 @@
 | ⚡ **Function Calling** | Gọi hàm tự động (thời tiết, tìm địa điểm, tính toán) |
 | 🧠 **Thinking Mode** | Chế độ suy luận từng bước (Chain of Thought) |
 | ✍️ **Markdown & Code** | Hiển thị code với syntax highlighting (Tokyo Night theme) |
-| 🔑 **Bring Your Own Key** | Nhập API Key riêng để test, không cần cấu hình server |
+| 🔑 **Bring Your Own Key** | Người dùng tự nhập API Key của mình để test; app không dùng key local/server mặc định |
 | 🌙 **Dark Mode** | Giao diện tối chuyên nghiệp, tối ưu cho mắt |
 
 ## 🏗️ Kiến trúc
@@ -49,7 +49,7 @@ gemma4/
 │   └── run_all_tests.sh
 ├── vercel.json              # Cấu hình Vercel
 ├── requirements.txt         # Dependencies
-└── .env                     # API Key (local only)
+└── .env.example             # File mẫu, không chứa key thật
 ```
 
 ## 🚀 Bắt đầu nhanh
@@ -68,10 +68,7 @@ source venv/bin/activate
 # 3. Cài dependencies
 pip install flask flask-cors google-genai python-dotenv
 
-# 4. Cấu hình API Key
-echo "GEMINI_API_KEY=your_key_here" > .env
-
-# 5. Chạy server
+# 4. Chạy server
 ./run_web_ui.sh
 ```
 
@@ -87,7 +84,7 @@ npm i -g vercel
 vercel --prod
 ```
 
-> **Lưu ý Quan Trọng:** Khi deploy trên Vercel, bạn bắt buộc phải gán biến môi trường `GEMINI_API_KEY=your_key` trực tiếp trên Vercel Dashboard (Settings > Environment Variables) thì serverless backend mới có khởi tạo được API! (Hoặc có thể chạy lệnh `vercel env add GEMINI_API_KEY`).
+> **Lưu ý Quan Trọng:** Bản này dùng mô hình **Bring Your Own Key**. Người dùng phải tự nhập `GEMINI_API_KEY` ngay trên giao diện để test. Không còn fallback sang key local hoặc key server mặc định.
 
 ## 🔑 Lấy API Key
 
@@ -96,7 +93,7 @@ vercel --prod
 3. Nhấn **"Create API Key"**
 4. Copy key và dán vào ô API Key trên giao diện
 
-> ⚠️ **Bảo mật:** API Key là thông tin nhạy cảm. Test xong nên xóa key và tạo key mới khi cần.
+> ⚠️ **Bảo mật:** API Key là thông tin nhạy cảm. Đừng commit key vào repo, đừng để trong `.env` thật nếu repo dùng để demo/chia sẻ. Test xong nên xóa key khỏi giao diện.
 
 ## 🤖 Mô hình hỗ trợ
 

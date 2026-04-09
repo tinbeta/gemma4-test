@@ -247,11 +247,12 @@
 
         <div>
             <div class="section-title">🔑 API Key</div>
-            <input type="password" class="api-input" id="api-key-input" placeholder="AIzaSy..." oninput="updateApiStatus()">
+            <input type="password" class="api-input" id="api-key-input" placeholder="Nhập Gemini API Key của bạn..." oninput="updateApiStatus()">
             <div class="api-hint">
-                👉 <a href="https://aistudio.google.com/apikey" target="_blank">Lấy API Key miễn phí tại đây</a>
+                👉 <a href="https://aistudio.google.com/apikey" target="_blank">Lấy Gemini API Key tại đây</a><br>
+                Key chỉ dùng cho phiên test của bạn, không còn fallback sang key local/server.
             </div>
-            <div class="api-warn">⚠️ Test xong nên xóa key để bảo mật!</div>
+            <div class="api-warn">⚠️ Không nhập key thì app sẽ không gửi request.</div>
             <div class="api-status" id="api-status"></div>
         </div>
 
@@ -300,7 +301,7 @@
 
         <div class="sidebar-footer">
             <button class="clear-btn" onclick="clearChat()">Xóa lịch sử</button>
-            <div style="font-size:.68rem;color:var(--text-dim);text-align:center">Powered by Google Gemini API</div>
+            <div style="font-size:.68rem;color:var(--text-dim);text-align:center">Bring your own Gemini API Key · Không dùng key local</div>
         </div>
     </aside>
 
@@ -480,6 +481,10 @@ async function sendMessage(){
     if(!text && !selectedFile)return;
 
     const apiKey=$('api-key-input').value.trim();
+    if(!apiKey){
+        appendMsg('ai','⚠️ Bạn cần nhập **Gemini API Key** của riêng mình trước khi test.');
+        return;
+    }
 
     let sys=$('system-input').value;
     if($('toggle-think').checked){
@@ -544,10 +549,10 @@ function updateApiStatus(){
     const el=$('api-status');
     if(key.length>10){
         el.className='api-status ok';
-        el.textContent='✓ Đang dùng Custom API Key';
+        el.textContent='✓ Sẵn sàng test với key bạn vừa nhập';
     }else{
         el.className='api-status using-env';
-        el.textContent='✓ Đang dùng Server API Key';
+        el.textContent='⚠️ Chưa có key — app sẽ không chạy test';
     }
     el.style.display='block';
 }
